@@ -55,8 +55,9 @@ def open_encoding():
 
 def read_s3_file_into_filesystem(key):
 	bucket = s3.Bucket(input_bucket)
-	filename = path + key
-	obj = bucket.download_file(key, filename)
+	filepath = path + key
+	with open(filepath, 'wb') as f:
+		bucket.download_fileobj(Key=key, Fileobj=f)
 	return path + key
 
 def search_dyno_table(name):

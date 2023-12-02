@@ -2,6 +2,7 @@ import boto3
 from boto3 import client as boto3_client
 import os
 import re
+import click
 
 input_bucket = "546-oneszeros-input"
 output_bucket = "546-oneszeros-output"
@@ -14,6 +15,10 @@ s3 = boto3.resource(
         aws_access_key_id = "ACCESS_KEY",
         aws_secret_access_key = "SECRET_KEY"
 )
+
+@click.group()
+def cli():
+	pass
 
 def clear_input_bucket():
 	global input_bucket
@@ -59,6 +64,13 @@ def upload_files(test_case):
 			print("Uploading to input bucket..  name: " + str(filename)) 
 			upload_to_input_bucket_s3(test_dir, filename)
 
+
+@cli.command()
+def clear_buckets():
+	clear_input_bucket()
+	clear_output_bucket()
+
+
 def read_mapping():
 	results = []
 	with open("mapping", "r") as f:
@@ -70,6 +82,7 @@ def read_mapping():
 				results.append((key, major, year))
 	return results
 
+@cli.command()
 def verify_outputs():
 	global output_bucket
 	expected_results = read_mapping()
@@ -92,10 +105,10 @@ def verify_outputs():
 	print("Verified: " + str(count))
 	print("Accuracy: " + str(count/total))
 
-def list_objects():
+@cli.command()
+def list_buckets():
 	global input_bucket, output_bucket
 	bucket = s3.Bucket(input_bucket)
-	print(dir(bucket))
 	print("INPUT BUCKET")
 	objects = bucket.objects.all()
 	for o in objects:
@@ -108,23 +121,31 @@ def list_objects():
 	for o in objects:
 		print(o.key)
 
-	
+@cli.command()
+@click.option('--key', prompt =  "Enter the Key you want to download: ")
+def download_output(key):
+	bucket = s3.Bucket(output_bucket)
+	bucket.download_file(key, key.split('.')[0] + '.csv')
+
+
+@cli.command()
 def workload_generator():
 
-	print("Running Test Case 0")
-	upload_files("test_case_0")
+	# print("Running Test Case 0")
+	# upload_files("test_case_0")
 	
-	# print("Running Test Case 1")
-	# upload_files("test_case_1")
+	print("Running Test Case 1")
+	upload_files("test_case_1")
 
-	# print("Running Test Case 2")
-	# upload_files("test_case_2")
+	print("Running Test Case 2")
+	upload_files("test_case_2")
+
 	
 
 # First Run the workload generator
 # Then run the verify outputs
 if __name__ == "__main__":
-	list_objects()
+	cli()
 	# clear_input_bucket()
 	# clear_output_bucket()	
 	# workload_generator()	

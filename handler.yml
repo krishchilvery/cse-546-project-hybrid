@@ -8,4 +8,4 @@ functions:
     handler: ./handler
     image: krishchilvery/oneszeros-projecthybrid-handler:latest
     build-args:
-      ADDITIONAL_PACKAGE: "cmake ffmpeg"
+      - ADDITIONAL_PACKAGE: ffmpeg
