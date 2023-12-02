@@ -1,6 +1,2 @@
 boto3
-dlib
-numpy
-face_recognition
-opencv-python
-ffmpeg
+httpx

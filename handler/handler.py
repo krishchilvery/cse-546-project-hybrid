@@ -1,33 +1,33 @@
+import boto3
 from boto3 import client as boto3_client
-import boto
-import boto.s3.connection
 import face_recognition
 import pickle
 import os
 
-input_bucket = "546proj2-oneszeros"
-output_bucket = "546proj2output-oneszeros"
+input_bucket = "546-oneszeros-input"
+output_bucket = "546-oneszeros-output"
 dynamodb_name = "546StudentData"
 path = "/tmp/"
-ceph_access_key = 'OG5CJ3AJ7SB12MB6WRKY'
-ceph_secret_key = 'nFIuCfZpWnJCavHhDniYn4t3fFbhkEQr3WD7h25q'
+ceph_access_key = 'ACCESS_KEY'
+ceph_secret_key = 'SECRET_KEY'
 
 aws_access_key = "AKIAZTTHAE5PD7ISLVNT"
 aws_secret_key = "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"
 
-s3 = boto.connect_s3(
+region = "us-east-1"
+os.environ["AWS_DEFAULT_REGION"] = region
+
+s3 = boto3.resource(
+        's3',
+        endpoint_url='http://10.0.2.15:8000',
         aws_access_key_id = ceph_access_key,
-        aws_secret_access_key = ceph_secret_key,
-        host = '10.0.2.15',
-		port = 8000,
-        is_secure=False,      
-        calling_format = boto.s3.connection.OrdinaryCallingFormat()
+        aws_secret_access_key = ceph_secret_key
         )
 
 dynamodb = boto3.resource(
 	"dynamodb", 
-	aws_access_key_id=access_key, 
-	aws_secret_access_key=secret_key
+	aws_access_key_id=aws_access_key, 
+	aws_secret_access_key=aws_secret_key
 	)
 cwd = os.getcwd()
 
@@ -54,10 +54,9 @@ def open_encoding():
 	return names, known_encodings
 
 def read_s3_file_into_filesystem(key):
-	obj = s3.get_object(Bucket=input_bucket, Key=key)
-	video = obj["Body"].read()
-	with open(path + key, "wb") as f:
-		f.write(video)
+	bucket = s3.Bucket(input_bucket)
+	filename = path + key
+	obj = bucket.download_file(key, filename)
 	return path + key
 
 def search_dyno_table(name):
@@ -91,14 +90,16 @@ def delete_csv_file(result_path):
 def upload_to_s3(key, result):
 	name = key.split('.')[0]
 	result_path = create_csv_file(name, result)
-	s3 = boto3_client("s3")
-	s3.upload_file(result_path, output_bucket, name)
+	bucket = s3.Bucket(output_bucket)
+	bucket.upload_file(result_path, name)
 	delete_csv_file(result_path)
 
 def handle(req):
-	print(req)
-	return req
-	key = event["Records"][0]["s3"]["object"]["key"]
+	try:
+		key = req["key"]
+	except Exception:
+		print("ERROR parsing as json", req)
+		key = req
 	print(key)
 	video_path = read_s3_file_into_filesystem(key)
 	flag = extract_frames(video_path)

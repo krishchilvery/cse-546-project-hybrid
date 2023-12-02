@@ -1,37 +1,46 @@
+import boto3
 from boto3 import client as boto3_client
 import os
 import re
 
-input_bucket = "546proj2-oneszeros"
-output_bucket = "546proj2output-oneszeros"
+input_bucket = "546-oneszeros-input"
+output_bucket = "546-oneszeros-output"
 test_cases = "test_cases/"
+
+
+s3 = boto3.resource(
+        's3',
+        endpoint_url='http://10.0.2.15:8000',
+        aws_access_key_id = "ACCESS_KEY",
+        aws_secret_access_key = "SECRET_KEY"
+)
 
 def clear_input_bucket():
 	global input_bucket
-	s3 = boto3_client('s3')
-	list_obj = s3.list_objects_v2(Bucket=input_bucket)
+	bucket = s3.Bucket(input_bucket)
+	objects = bucket.objects.all()
+	objects = [{"Key": o.key} for o in objects]
 	try:
-		for item in list_obj["Contents"]:
-			key = item["Key"]
-			s3.delete_object(Bucket=input_bucket, Key=key)
-	except:
+		bucket.delete_objects(Delete={'Objects':objects})
+	except Exception as e:
+		print(e)
 		print("Nothing to clear in input bucket")
 	
 def clear_output_bucket():
 	global output_bucket
-	s3 = boto3_client('s3')
-	list_obj = s3.list_objects_v2(Bucket=output_bucket)
+	bucket = s3.Bucket(output_bucket)
+	objects = bucket.objects.all()
+	objects = [{"Key": o.key} for o in objects]
 	try:
-		for item in list_obj["Contents"]:
-			key = item["Key"]
-			s3.delete_object(Bucket=output_bucket, Key=key)
-	except:
+		bucket.delete_objects(Delete={'Objects':objects})
+	except Exception as e:
+		print(e)
 		print("Nothing to clear in output bucket")
 
 def upload_to_input_bucket_s3(path, name):
 	global input_bucket
-	s3 = boto3_client('s3')
-	s3.upload_file(path + name, input_bucket, name)
+	bucket = s3.Bucket(input_bucket)
+	bucket.upload_file(path + name, name)
 	
 	
 def upload_files(test_case):	
@@ -64,7 +73,7 @@ def read_mapping():
 def verify_outputs():
 	global output_bucket
 	expected_results = read_mapping()
-	s3 = boto3_client('s3')
+	bucket = s3.Bucket(output_bucket)
 	total = len(expected_results)
 	count = 0
 	for key, major, year in expected_results:
@@ -83,22 +92,42 @@ def verify_outputs():
 	print("Verified: " + str(count))
 	print("Accuracy: " + str(count/total))
 
+def list_objects():
+	global input_bucket, output_bucket
+	bucket = s3.Bucket(input_bucket)
+	print(dir(bucket))
+	print("INPUT BUCKET")
+	objects = bucket.objects.all()
+	for o in objects:
+		print(o.key)
+
+	print()
+	print("OUTPUT_BUCKET")
+	bucket = s3.Bucket(output_bucket)
+	objects = bucket.objects.all()
+	for o in objects:
+		print(o.key)
+
 	
 def workload_generator():
-	
-	print("Running Test Case 1")
-	upload_files("test_case_1")
 
-	print("Running Test Case 2")
-	upload_files("test_case_2")
+	print("Running Test Case 0")
+	upload_files("test_case_0")
+	
+	# print("Running Test Case 1")
+	# upload_files("test_case_1")
+
+	# print("Running Test Case 2")
+	# upload_files("test_case_2")
 	
 
 # First Run the workload generator
 # Then run the verify outputs
 if __name__ == "__main__":
-	clear_input_bucket()
-	clear_output_bucket()	
-	workload_generator()	
+	list_objects()
+	# clear_input_bucket()
+	# clear_output_bucket()	
+	# workload_generator()	
 	# verify_outputs()
 	
 
