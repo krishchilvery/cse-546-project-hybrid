@@ -1,0 +1,11 @@
+version: 1.0
+provider:
+  name: openfaas
+  gateway: http://127.0.0.1:8080
+functions:
+  handler:
+    lang: python3-debian
+    handler: ./handler
+    image: krishchilvery/oneszeros-projecthybrid-handler:latest
+    build-args:
+      ADDITIONAL_PACKAGE: "cmake ffmpeg"
